@@ -2,65 +2,69 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# Configuração visual do Dashboard
 st.set_page_config(page_title="Dashboard Padre Ezequiel", layout="wide")
 
-# O link que você me mandou agora está fixo no código para você não precisar colar sempre!
+# Seu link CSV do Google Sheets
 SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSL-C_o2XTsoNlFDl0YX0521wFgzaY6mvHaf2iYGnnZ3givPhwEJzh4r6DQ5wmcrw/pub?output=csv"
 
 def load_data(url ):
     try:
-        # Lê os dados diretamente da sua planilha do Google
         df = pd.read_csv(url)
-        # Garante que os números sejam lidos corretamente
-        cols = ['Seguidores', 'Posts', 'Visualizacoes', 'Engajamento']
-        for col in cols:
+        # Remove espaços em branco dos nomes das colunas
+        df.columns = [c.strip() for c in df.columns]
+        
+        # Tenta encontrar as colunas mesmo que o nome mude um pouco
+        col_map = {
+            'Plataforma': ['Plataforma', 'Rede Social', 'Canal'],
+            'Mes': ['Mes', 'Mês', 'Periodo', 'Período'],
+            'Seguidores': ['Seguidores', 'Inscritos'],
+            'Visualizacoes': ['Visualizacoes', 'Visualizações', 'Views'],
+            'Engajamento': ['Engajamento', 'Interações']
+        }
+        
+        for oficial, variantes in col_map.items():
+            for v in variantes:
+                if v in df.columns and oficial not in df.columns:
+                    df = df.rename(columns={v: oficial})
+        
+        # Converte números
+        for col in ['Seguidores', 'Visualizacoes', 'Engajamento', 'Posts']:
             if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors='coerce')
+                df[col] = pd.to_numeric(df[col].astype(str).str.replace('.', '').str.replace(',', '.'), errors='coerce')
         
-        # Calcula as taxas automaticamente
-        if 'Engajamento' in df.columns and 'Visualizacoes' in df.columns:
-            df['Taxa_Engajamento'] = (df['Engajamento'] / df['Visualizacoes']) * 100
-        
-        # Define a ordem dos meses para os gráficos não ficarem bagunçados
-        mes_order = {'Março': 1, 'Abril': 2, 'Maio': 3, 'Junho': 4, 'Julho': 5, 'Agosto': 6}
-        if 'Mes' in df.columns:
-            df['Mes_Num'] = df['Mes'].map(mes_order)
         return df
-    except:
+    except Exception as e:
+        st.error(f"Erro ao carregar: {e}")
         return None
 
 df = load_data(SHEET_URL)
 
-if df is not None:
+if df is not None and not df.empty:
     st.title("📊 Dashboard KPIs - Padre Ezequiel")
-    st.markdown("Os dados abaixo são lidos em tempo real da sua planilha do Google Sheets.")
     
-    # Filtro de Plataforma na lateral
-    st.sidebar.header("Filtros")
-    todas_plats = df['Plataforma'].unique()
-    selecionadas = st.sidebar.multiselect("Selecione as Plataformas", options=todas_plats, default=todas_plats)
-    
-    df_filtrado = df[df['Plataforma'].isin(selecionadas)]
-    
-    # Cartões de Resumo (KPIs)
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Total Visualizações", f"{df_filtrado['Visualizacoes'].sum()/1e6:.1f}M")
-    c2.metric("Total Engajamento", f"{df_filtrado['Engajamento'].sum()/1e6:.1f}M")
-    c3.metric("Média Taxa Engaj.", f"{df_filtrado['Taxa_Engajamento'].mean():.2f}%")
-    
-    st.divider()
-    
-    # Gráficos
-    col1, col2 = st.columns(2)
-    with col1:
-        fig1 = px.bar(df_filtrado.sort_values('Mes_Num'), x='Mes', y='Visualizacoes', color='Plataforma', barmode='group', title="Visualizações por Mês")
-        st.plotly_chart(fig1, use_container_width=True)
-    with col2:
-        fig2 = px.line(df_filtrado.sort_values('Mes_Num'), x='Mes', y='Seguidores', color='Plataforma', markers=True, title="Evolução de Seguidores")
-        st.plotly_chart(fig2, use_container_width=True)
-    
-    st.subheader("Dados da Planilha")
-    st.dataframe(df_filtrado.drop(columns=['Mes_Num']))
+    # Verifica se as colunas essenciais existem
+    if 'Plataforma' in df.columns:
+        st.sidebar.header("Filtros")
+        plats = st.sidebar.multiselect("Plataformas", options=df['Plataforma'].unique(), default=df['Plataforma'].unique())
+        df_filtered = df[df['Plataforma'].isin(plats)]
+        
+        # KPIs
+        c1, c2, c3 = st.columns(3)
+        if 'Visualizacoes' in df.columns:
+            c1.metric("Total Visualizações", f"{df_filtered['Visualizacoes'].sum()/1e6:.1f}M")
+        if 'Engajamento' in df.columns:
+            c2.metric("Total Engajamento", f"{df_filtered['Engajamento'].sum()/1e6:.1f}M")
+        
+        st.divider()
+        
+        # Gráficos simples para evitar erros
+        if 'Mes' in df.columns and 'Visualizacoes' in df.columns:
+            st.plotly_chart(px.bar(df_filtered, x='Mes', y='Visualizacoes', color='Plataforma', barmode='group', title="Visualizações"), use_container_width=True)
+        
+        st.subheader("Visualização dos Dados")
+        st.dataframe(df_filtered)
+    else:
+        st.warning("Não encontramos a coluna 'Plataforma'. Verifique os nomes na sua planilha.")
+        st.write("Colunas encontradas:", list(df.columns))
 else:
-    st.error("Não conseguimos ler os dados da planilha. Verifique se ela está publicada corretamente como CSV.")
+    st.error("A planilha parece estar vazia ou o link está incorreto.")
