@@ -5,7 +5,7 @@ import plotly.express as px
 st.set_page_config(page_title="Dashboard Padre Ezequiel", layout="wide")
 
 # Seu link CSV do Google Sheets
-SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSL-C_o2XTsoNlFDl0YX0521wFgzaY6mvHaf2iYGnnZ3givPhwEJzh4r6DQ5wmcrw/pub?output=csv"
+SHEET_URL = "https://docs.google.com/spreadsheets/d/1JWkdu3uPqLZBmoUSyApJo2dZo6STECBW/edit?usp=sharing&ouid=113461225642370371919&rtpof=true&sd=true"
 
 def load_data(url ):
     try:
