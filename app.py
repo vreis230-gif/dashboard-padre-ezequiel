@@ -13,7 +13,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # 2. O Link da sua Planilha Nova (COLE O SEU NOVO LINK ENTRE AS ASPAS ABAIXO)
-SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSL-C_o2XTsoNlFDl0YX0521wFgzaY6mvHaf2iYGnnZ3givPhwEJzh4r6DQ5wmcrw/pub?output=csv"
+SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSlkfkFYoG5-wbbixuRgxLrxpMLM4y1OjejJoInmKD43a9SL-ZtmSLQqZGuQnijyQ/pubhtml"
 
 def load_data(url ):
     try:
